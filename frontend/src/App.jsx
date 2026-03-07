@@ -638,6 +638,18 @@ export default function App() {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold text-black/60 mb-2 uppercase tracking-wider">
+                          Clé API Anthropic
+                        </label>
+                        <input
+                          type="password"
+                          placeholder={settings.anthropic_api_key || "sk-ant-..."}
+                          value={apiKeyInput}
+                          onChange={(e) => setApiKeyInput(e.target.value)}
+                          className="w-full bg-black/5 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-black transition-all font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-black/60 mb-2 uppercase tracking-wider">
                           Intervalle de refresh (heures)
                         </label>
                         <input
