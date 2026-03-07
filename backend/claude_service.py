@@ -74,9 +74,9 @@ Si l'article n'est pas pertinent, mets is_ai_related à false, category_id à nu
 
     results = []
 
-    # Process in batches of 20
-    for i in range(0, len(articles), 20):
-        batch = articles[i : i + 20]
+    # Process in batches of 10
+    for i in range(0, len(articles), 10):
+        batch = articles[i : i + 10]
         articles_text = json.dumps(
             [
                 {"url": a["url"], "title": a["title"], "description": a["description"]}
@@ -89,7 +89,7 @@ Si l'article n'est pas pertinent, mets is_ai_related à false, category_id à nu
             try:
                 response = await client.messages.create(
                     model="claude-haiku-4-5-20251001",
-                    max_tokens=4096,
+                    max_tokens=8192,
                     system=system_prompt,
                     messages=[
                         {"role": "user", "content": f"Analyse ces articles :\n{articles_text}"}
