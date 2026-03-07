@@ -907,7 +907,7 @@ export default function App() {
 
               <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                 {/* Selection Sidebar */}
-                <div className="w-full md:w-80 border-r border-black/5 bg-black/[0.02] flex flex-col">
+                <div className="w-full md:w-80 border-r border-black/5 bg-black/[0.02] flex flex-col overflow-y-auto">
                   <div className="p-6 border-b border-black/5">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-black/30 mb-4">
                       Articles sélectionnés
