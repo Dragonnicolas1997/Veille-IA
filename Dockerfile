@@ -18,4 +18,6 @@ COPY --from=frontend-build /app/frontend/dist ./static/
 
 ENV DB_PATH=/data/veille.db
 
+RUN mkdir -p /data
+
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
