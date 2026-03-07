@@ -66,7 +66,7 @@ Pour chaque article fourni, tu dois :
 2. Classer dans une catégorie
 3. Attribuer un score selon la grille ci-dessus
 4. Traduire le titre en français (title_fr). Si déjà en français, le garder tel quel.
-5. Rédiger un résumé de 2 phrases en français, orienté "ce que ça change pour une grande entreprise française"
+5. Rédiger un résumé d'1 phrase courte en français (max 30 mots), orienté "ce que ça change pour une grande entreprise française"
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown, sans texte avant ou après.
 Chaque élément doit avoir : url, is_ai_related, category_id, relevance_score, title_fr, summary_fr
@@ -74,9 +74,9 @@ Si l'article n'est pas pertinent, mets is_ai_related à false, category_id à nu
 
     results = []
 
-    # Process in batches of 10
-    for i in range(0, len(articles), 10):
-        batch = articles[i : i + 10]
+    # Process in batches of 5
+    for i in range(0, len(articles), 5):
+        batch = articles[i : i + 5]
         articles_text = json.dumps(
             [
                 {"url": a["url"], "title": a["title"], "description": a["description"]}
