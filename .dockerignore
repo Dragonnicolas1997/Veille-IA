@@ -1,0 +1,10 @@
+node_modules
+__pycache__
+*.pyc
+veille.db
+veille_ia.db
+.git
+.env
+dist
+tmp_articles.json
+*.xlsx
