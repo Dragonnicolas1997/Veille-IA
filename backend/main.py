@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 async def _get_feedback_examples(db, reason: str, limit=15) -> list[dict]:
     """Fetch recent user feedback examples for Claude."""
     cursor = await db.execute(
-        "SELECT title, description FROM user_feedback WHERE reason = ? ORDER BY created_at DESC LIMIT ?",
+        "SELECT title, description, category_name FROM user_feedback WHERE reason = ? ORDER BY created_at DESC LIMIT ?",
         (reason, limit),
     )
     return [dict(row) for row in await cursor.fetchall()]
@@ -498,7 +498,11 @@ async def like_article(article_id: int):
     db = await get_db()
     try:
         cursor = await db.execute(
-            "SELECT title, description, user_liked FROM articles WHERE id = ?", (article_id,)
+            """SELECT a.title, a.description, a.user_liked, c.name as category_name
+               FROM articles a
+               LEFT JOIN categories c ON a.category_id = c.id
+               WHERE a.id = ?""",
+            (article_id,),
         )
         row = await cursor.fetchone()
         if not row:
@@ -512,8 +516,8 @@ async def like_article(article_id: int):
 
         if not already_liked:
             await db.execute(
-                "INSERT INTO user_feedback (title, description, reason) VALUES (?, ?, 'liked')",
-                (row["title"], (row["description"] or "")[:500]),
+                "INSERT INTO user_feedback (title, description, category_name, reason) VALUES (?, ?, ?, 'liked')",
+                (row["title"], (row["description"] or "")[:500], row["category_name"] or ""),
             )
         else:
             await db.execute(

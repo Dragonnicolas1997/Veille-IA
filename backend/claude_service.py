@@ -53,7 +53,7 @@ ARTICLES REJETÉS PAR L'UTILISATEUR (calibre-toi — des articles similaires doi
 """
     if liked_examples:
         liked_lines = "\n".join(
-            f"- \"{ex['title']}\" → pertinent, score élevé"
+            f"- \"{ex['title']}\" → pertinent, score élevé{', catégorie: ' + ex['category_name'] if ex.get('category_name') else ''}"
             for ex in liked_examples[:15]
         )
         feedback_section += f"""

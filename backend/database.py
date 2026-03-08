@@ -150,6 +150,7 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT DEFAULT '',
+                category_name TEXT DEFAULT '',
                 reason TEXT DEFAULT 'rejected',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
