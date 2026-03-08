@@ -51,8 +51,8 @@ export const translateTitles = () =>
   request("/translate-titles", { method: "POST" });
 
 // Add article manually
-export const addArticle = (url) =>
-  request("/articles/add", { method: "POST", body: JSON.stringify({ url }) });
+export const addArticle = (url, category_id) =>
+  request("/articles/add", { method: "POST", body: JSON.stringify({ url, category_id }) });
 
 // Reclassify
 export const reclassify = () =>

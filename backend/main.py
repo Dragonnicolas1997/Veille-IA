@@ -71,6 +71,7 @@ class SettingsIn(BaseModel):
 
 class ArticleAddIn(BaseModel):
     url: str
+    category_id: int
 
 class BriefingIn(BaseModel):
     article_ids: list[int] = []
@@ -352,33 +353,18 @@ async def add_article(body: ArticleAddIn):
         # Fetch metadata
         meta = await fetch_url_metadata(body.url)
 
-        # Insert article
+        # Insert article — no Claude classification, user picks category
         now = datetime.now(timezone.utc).isoformat()
         await db.execute(
-            """INSERT INTO articles (feed_id, url, title, description, published_at, manually_added)
-               VALUES (?, ?, ?, ?, ?, 1)""",
-            (feed_id, body.url, meta["title"], meta["description"], now),
+            """INSERT INTO articles (feed_id, url, title, description, published_at, manually_added, is_ai_related, category_id)
+               VALUES (?, ?, ?, ?, ?, 1, 1, ?)""",
+            (feed_id, body.url, meta["title"], meta["description"], now, body.category_id),
         )
         await db.commit()
 
-        # Get inserted article
-        cursor = await db.execute("SELECT id, url, title, description, published_at FROM articles WHERE url = ?", (body.url,))
+        # Get inserted article id
+        cursor = await db.execute("SELECT id FROM articles WHERE url = ?", (body.url,))
         article = dict(await cursor.fetchone())
-
-        # Classify with Claude
-        api_key = await get_api_key(db)
-        if api_key:
-            cursor = await db.execute("SELECT id, name, description FROM categories ORDER BY position")
-            categories = [dict(row) for row in await cursor.fetchall()]
-            results = await filter_and_classify([article], categories, api_key)
-            await apply_classifications(db, results)
-
-        # Ensure manually added articles are always visible
-        await db.execute(
-            "UPDATE articles SET is_ai_related = 1, relevance_score = MAX(relevance_score, 7) WHERE id = ? AND manually_added = 1",
-            (article["id"],),
-        )
-        await db.commit()
 
         # Return full article
         cursor = await db.execute(

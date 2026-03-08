@@ -58,6 +58,7 @@ export default function App() {
   const [sortOrder, setSortOrder] = useState("newest");
   const [showAddUrl, setShowAddUrl] = useState(false);
   const [addUrlInput, setAddUrlInput] = useState("");
+  const [addCategoryId, setAddCategoryId] = useState("");
   const [isAddingArticle, setIsAddingArticle] = useState(false);
 
   // Settings form state
@@ -217,12 +218,13 @@ export default function App() {
 
   async function handleAddArticle(e) {
     e.preventDefault();
-    if (!addUrlInput.trim()) return;
+    if (!addUrlInput.trim() || !addCategoryId) return;
     setIsAddingArticle(true);
-    setStatusMessage("Ajout et classification en cours...");
+    setStatusMessage("Ajout en cours...");
     try {
-      await api.addArticle(addUrlInput.trim());
+      await api.addArticle(addUrlInput.trim(), Number(addCategoryId));
       setAddUrlInput("");
+      setAddCategoryId("");
       setShowAddUrl(false);
       setStatusMessage("Article ajouté avec succès !");
       await loadArticles();
@@ -340,9 +342,20 @@ export default function App() {
                 autoFocus
                 required
               />
+              <select
+                value={addCategoryId}
+                onChange={(e) => setAddCategoryId(e.target.value)}
+                required
+                className="px-3 py-2 text-sm border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20 bg-white"
+              >
+                <option value="">Catégorie...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
               <button
                 type="submit"
-                disabled={isAddingArticle}
+                disabled={isAddingArticle || !addCategoryId}
                 className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black/80 transition-all disabled:opacity-50"
               >
                 {isAddingArticle ? (
@@ -354,7 +367,7 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowAddUrl(false); setAddUrlInput(""); }}
+                onClick={() => { setShowAddUrl(false); setAddUrlInput(""); setAddCategoryId(""); }}
                 className="p-2 hover:bg-black/5 rounded-lg text-black/40 hover:text-black"
               >
                 <X size={16} />
@@ -584,8 +597,8 @@ export default function App() {
                             <Check size={12} strokeWidth={4} />
                           )}
                         </button>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-black/40 bg-black/5 px-2 py-1 rounded">
-                          {article.feed_name}
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${article.manually_added ? "text-amber-600 bg-amber-50" : "text-black/40 bg-black/5"}`}>
+                          {article.manually_added ? "Ajouté manuellement" : article.feed_name}
                         </span>
                         <span className="text-[10px] text-black/30 font-medium">
                           {article.published_at
@@ -631,24 +644,27 @@ export default function App() {
                           </select>
                         </div>
 
-                        <div className="h-4 w-[1px] bg-black/5" />
-
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-bold text-black/40 uppercase tracking-tighter">
-                            Score
-                          </span>
-                          <div className="flex gap-0.5">
-                            {[...Array(10)].map((_, i) => (
-                              <div
-                                key={i}
-                                className={`w-1.5 h-3 rounded-full ${i < article.relevance_score ? "bg-emerald-500" : "bg-black/5"}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs font-bold ml-1">
-                            {article.relevance_score}/10
-                          </span>
-                        </div>
+                        {!article.manually_added && (
+                          <>
+                            <div className="h-4 w-[1px] bg-black/5" />
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-black/40 uppercase tracking-tighter">
+                                Score
+                              </span>
+                              <div className="flex gap-0.5">
+                                {[...Array(10)].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className={`w-1.5 h-3 rounded-full ${i < article.relevance_score ? "bg-emerald-500" : "bg-black/5"}`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs font-bold ml-1">
+                                {article.relevance_score}/10
+                              </span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
