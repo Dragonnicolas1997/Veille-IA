@@ -1,11 +1,15 @@
 import anthropic
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 
 async def get_api_key(db) -> str | None:
+    env_key = os.environ.get("ANTHROPIC_API_KEY")
+    if env_key:
+        return env_key
     cursor = await db.execute(
         "SELECT value FROM settings WHERE key = 'anthropic_api_key'"
     )

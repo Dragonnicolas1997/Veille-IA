@@ -478,10 +478,12 @@ async def get_settings():
         for row in rows:
             k, v = row["key"], row["value"]
             if k == "anthropic_api_key":
-                # Return masked version
                 result[k] = "sk-***" if v else ""
             else:
                 result[k] = v
+        # If key comes from env var, mark it as configured
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            result["anthropic_api_key"] = "env"
         return result
     finally:
         await db.close()
