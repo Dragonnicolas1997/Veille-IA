@@ -172,11 +172,11 @@ Tu DOIS respecter EXACTEMENT ce template Markdown (pas d'improvisation sur la st
 
 ### [Titre de l'article en français]
 [Résumé de 2-3 phrases orienté "ce que ça change pour une grande entreprise française". Court et percutant.]
-[Lire l'article](url)
+Source : [Nom de la source] — [Lire l'article](url)
 
 ### [Titre de l'article suivant]
 [Résumé]
-[Lire l'article](url)
+Source : [Nom de la source] — [Lire l'article](url)
 
 ---
 
@@ -190,7 +190,7 @@ RÈGLES STRICTES :
 - Respecte exactement cette structure, ne rajoute PAS de sections supplémentaires
 - Regroupe les articles par catégorie (utilise le champ category_name fourni)
 - N'inclus QUE les catégories qui ont des articles
-- Chaque article a : son titre (### en H3), un résumé court, et un lien cliquable
+- Chaque article a : son titre (### en H3), un résumé court, la source (feed_name) et un lien cliquable
 - Le résumé doit être en français, orienté impact entreprise, 2-3 phrases max
 - Ne rajoute PAS de section de conclusion ou d'avis à la fin
 - Le ton est professionnel, expert et accessible
@@ -207,6 +207,7 @@ async def generate_briefing(articles: list[dict], api_key: str) -> str:
                 "title": a.get("title_fr") or a["title"],
                 "summary_fr": a.get("summary_fr", ""),
                 "category_name": a.get("category_name", "Autre"),
+                "feed_name": a.get("feed_name", ""),
                 "url": a.get("url", ""),
             }
             for a in articles
@@ -290,6 +291,7 @@ Pas de markdown, pas de texte avant ou après.""",
                 "title": a.get("title_fr") or a["title"],
                 "summary_fr": a.get("summary_fr", ""),
                 "category_name": a.get("category_name", "Autre"),
+                "feed_name": a.get("feed_name", ""),
                 "url": a.get("url", ""),
             }
             for a in selected

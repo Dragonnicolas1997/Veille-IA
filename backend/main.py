@@ -523,9 +523,10 @@ async def create_briefing(body: BriefingIn):
             # Prompt mode: Claude selects articles based on user request
             cursor = await db.execute(
                 """SELECT a.id, a.url, a.title, a.title_fr, a.summary_fr, a.relevance_score,
-                          c.name as category_name
+                          c.name as category_name, f.name as feed_name
                    FROM articles a
                    LEFT JOIN categories c ON a.category_id = c.id
+                   LEFT JOIN feeds f ON a.feed_id = f.id
                    WHERE a.is_ai_related = 1 AND a.manually_removed = 0
                    ORDER BY a.relevance_score DESC"""
             )
@@ -543,9 +544,10 @@ async def create_briefing(body: BriefingIn):
         elif body.auto:
             # Auto: top 2 articles per category
             cursor = await db.execute(
-                """SELECT a.id, a.url, a.title, a.title_fr, a.summary_fr, c.name as category_name
+                """SELECT a.id, a.url, a.title, a.title_fr, a.summary_fr, c.name as category_name, f.name as feed_name
                    FROM articles a
                    LEFT JOIN categories c ON a.category_id = c.id
+                   LEFT JOIN feeds f ON a.feed_id = f.id
                    WHERE a.is_ai_related = 1 AND a.manually_removed = 0
                    ORDER BY a.relevance_score DESC"""
             )
@@ -564,9 +566,10 @@ async def create_briefing(body: BriefingIn):
                 raise HTTPException(400, "Aucun article sélectionné")
             placeholders = ",".join("?" for _ in body.article_ids)
             cursor = await db.execute(
-                f"""SELECT a.id, a.url, a.title, a.title_fr, a.summary_fr, c.name as category_name
+                f"""SELECT a.id, a.url, a.title, a.title_fr, a.summary_fr, c.name as category_name, f.name as feed_name
                     FROM articles a
                     LEFT JOIN categories c ON a.category_id = c.id
+                    LEFT JOIN feeds f ON a.feed_id = f.id
                     WHERE a.id IN ({placeholders})""",
                 body.article_ids,
             )
