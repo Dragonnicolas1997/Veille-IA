@@ -645,32 +645,6 @@ export default function App() {
                 <div className="space-y-10">
                   <section>
                     <h3 className="text-sm font-bold uppercase tracking-widest text-black/30 mb-6 flex items-center gap-2">
-                      <BrainCircuit size={14} /> Intelligence Artificielle
-                    </h3>
-                    <div className="space-y-4">
-                      {settings.anthropic_api_key === "env" ? (
-                        <div className="bg-emerald-50 text-emerald-700 rounded-2xl px-5 py-4 text-sm font-medium">
-                          Clé API configurée sur le serveur
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="block text-xs font-bold text-black/60 mb-2 uppercase tracking-wider">
-                            Clé API Anthropic
-                          </label>
-                          <input
-                            type="password"
-                            placeholder={settings.anthropic_api_key || "sk-ant-..."}
-                            value={apiKeyInput}
-                            onChange={(e) => setApiKeyInput(e.target.value)}
-                            className="w-full bg-black/5 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-black transition-all font-mono"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </section>
-
-                  <section>
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-black/30 mb-6 flex items-center gap-2">
                       <Tag size={14} /> Catégories Thématiques (
                       {categories.length})
                     </h3>
