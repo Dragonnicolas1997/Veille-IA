@@ -458,6 +458,17 @@ async def update_article(article_id: int, patch: ArticlePatch):
         await db.close()
 
 
+@app.delete("/api/articles/{article_id}")
+async def delete_article(article_id: int):
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
+        await db.commit()
+        return {"ok": True}
+    finally:
+        await db.close()
+
+
 # ── Categories ────────────────────────────────────────────────────
 
 @app.get("/api/categories")

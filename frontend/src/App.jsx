@@ -207,7 +207,7 @@ export default function App() {
   }
 
   async function handleRemoveArticle(id) {
-    await api.patchArticle(id, { manually_removed: true });
+    await api.deleteArticle(id);
     setArticles((prev) => prev.filter((a) => a.id !== id));
   }
 

@@ -28,6 +28,8 @@ export const getArticles = (params = {}) => {
 };
 export const patchArticle = (id, data) =>
   request(`/articles/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+export const deleteArticle = (id) =>
+  request(`/articles/${id}`, { method: "DELETE" });
 
 // Categories
 export const getCategories = () => request("/categories");
