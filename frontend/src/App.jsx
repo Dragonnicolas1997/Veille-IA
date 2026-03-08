@@ -660,20 +660,6 @@ export default function App() {
                           className="w-full bg-black/5 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-black transition-all font-mono"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black/60 mb-2 uppercase tracking-wider">
-                          Intervalle de refresh (heures)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={refreshInterval}
-                          onChange={(e) =>
-                            setRefreshInterval(Number(e.target.value))
-                          }
-                          className="w-24 bg-black/5 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-black transition-all"
-                        />
-                      </div>
                     </div>
                   </section>
 
