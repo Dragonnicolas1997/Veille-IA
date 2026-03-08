@@ -242,8 +242,9 @@ async def refresh_feeds():
             logger.info(f"Après dédup : {len(pool)} articles à classifier")
 
             if pool:
-                rejected = await _get_rejected_examples(db)
-                results = await filter_and_classify(pool, categories, api_key, rejected)
+                rejected = await _get_feedback_examples(db, "rejected")
+                liked = await _get_feedback_examples(db, "liked")
+                results = await filter_and_classify(pool, categories, api_key, rejected, liked)
                 await apply_classifications(db, results)
                 classified = len(results)
 
@@ -285,8 +286,9 @@ async def reclassify_articles():
 
         classified = 0
         if pool:
-            rejected = await _get_rejected_examples(db)
-            results = await filter_and_classify(pool, categories, api_key, rejected)
+            rejected = await _get_feedback_examples(db, "rejected")
+            liked = await _get_feedback_examples(db, "liked")
+            results = await filter_and_classify(pool, categories, api_key, rejected, liked)
             await apply_classifications(db, results)
             classified = len(results)
 
@@ -336,8 +338,9 @@ async def reclassify_rejected():
 
         classified = 0
         if pool:
-            rejected = await _get_rejected_examples(db)
-            results = await filter_and_classify(pool, categories, api_key, rejected)
+            rejected = await _get_feedback_examples(db, "rejected")
+            liked = await _get_feedback_examples(db, "liked")
+            results = await filter_and_classify(pool, categories, api_key, rejected, liked)
             await apply_classifications(db, results)
             classified = len(results)
 
