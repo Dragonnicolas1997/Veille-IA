@@ -22,6 +22,7 @@ async def get_api_key(db) -> str | None:
 async def filter_and_classify(
     articles: list[dict], categories: list[dict], api_key: str,
     rejected_examples: list[dict] | None = None,
+    liked_examples: list[dict] | None = None,
 ) -> list[dict]:
     """
     Send articles to Claude in batches for AI-relevance filtering,
@@ -38,17 +39,27 @@ async def filter_and_classify(
         for c in categories
     )
 
-    # Build rejected examples section
-    rejected_section = ""
+    # Build feedback sections
+    feedback_section = ""
     if rejected_examples:
         rejected_lines = "\n".join(
             f"- \"{ex['title']}\" → score 0, is_ai_related: false"
             for ex in rejected_examples[:15]
         )
-        rejected_section = f"""
+        feedback_section += f"""
 
-ARTICLES REJETÉS PAR L'UTILISATEUR (calibre-toi sur ces exemples — des articles similaires doivent recevoir score 0) :
+ARTICLES REJETÉS PAR L'UTILISATEUR (calibre-toi — des articles similaires doivent recevoir score 0) :
 {rejected_lines}
+"""
+    if liked_examples:
+        liked_lines = "\n".join(
+            f"- \"{ex['title']}\" → pertinent, score élevé"
+            for ex in liked_examples[:15]
+        )
+        feedback_section += f"""
+
+ARTICLES APPRÉCIÉS PAR L'UTILISATEUR (calibre-toi — des articles similaires méritent un score élevé) :
+{liked_lines}
 """
 
     system_prompt = f"""Tu es un assistant de veille IA pour le Directeur du Lab IA d'une grande entreprise française du CAC 40.
@@ -108,7 +119,7 @@ Exemple 6 — Score 0 (rejeté) :
 Titre : "Cyberattaque massive : des hackers exploitent une faille zero-day"
 → is_ai_related: false, score: 0
 Raison : cybersécurité pure sans lien avec l'IA.
-{rejected_section}
+{feedback_section}
 CATÉGORIES — classe chaque article pertinent dans UNE seule catégorie :
 {categories_desc}
 

@@ -30,6 +30,8 @@ export const patchArticle = (id, data) =>
   request(`/articles/${id}`, { method: "PATCH", body: JSON.stringify(data) });
 export const deleteArticle = (id) =>
   request(`/articles/${id}`, { method: "DELETE" });
+export const likeArticle = (id) =>
+  request(`/articles/${id}/like`, { method: "POST" });
 
 // Categories
 export const getCategories = () => request("/categories");

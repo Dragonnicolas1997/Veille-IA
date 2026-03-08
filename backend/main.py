@@ -30,11 +30,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def _get_rejected_examples(db, limit=15) -> list[dict]:
-    """Fetch recent user-rejected articles as negative examples for Claude."""
+async def _get_feedback_examples(db, reason: str, limit=15) -> list[dict]:
+    """Fetch recent user feedback examples for Claude."""
     cursor = await db.execute(
-        "SELECT title, description FROM user_feedback ORDER BY created_at DESC LIMIT ?",
-        (limit,),
+        "SELECT title, description FROM user_feedback WHERE reason = ? ORDER BY created_at DESC LIMIT ?",
+        (reason, limit),
     )
     return [dict(row) for row in await cursor.fetchall()]
 
@@ -166,8 +166,9 @@ async def _check_and_reclassify(db, api_key) -> int:
 
     classified = 0
     if pool:
-        rejected = await _get_rejected_examples(db)
-        results = await filter_and_classify(pool, categories, api_key, rejected)
+        rejected = await _get_feedback_examples(db, "rejected")
+        liked = await _get_feedback_examples(db, "liked")
+        results = await filter_and_classify(pool, categories, api_key, rejected, liked)
         await apply_classifications(db, results)
         classified = len(results)
 
@@ -482,12 +483,46 @@ async def delete_article(article_id: int):
         row = await cursor.fetchone()
         if row:
             await db.execute(
-                "INSERT INTO user_feedback (title, description) VALUES (?, ?)",
+                "INSERT INTO user_feedback (title, description, reason) VALUES (?, ?, 'rejected')",
                 (row["title"], (row["description"] or "")[:500]),
             )
         await db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
         await db.commit()
         return {"ok": True}
+    finally:
+        await db.close()
+
+
+@app.post("/api/articles/{article_id}/like")
+async def like_article(article_id: int):
+    db = await get_db()
+    try:
+        cursor = await db.execute(
+            "SELECT title, description, user_liked FROM articles WHERE id = ?", (article_id,)
+        )
+        row = await cursor.fetchone()
+        if not row:
+            raise HTTPException(404, "Article introuvable")
+
+        already_liked = row["user_liked"]
+        await db.execute(
+            "UPDATE articles SET user_liked = ? WHERE id = ?",
+            (0 if already_liked else 1, article_id),
+        )
+
+        if not already_liked:
+            await db.execute(
+                "INSERT INTO user_feedback (title, description, reason) VALUES (?, ?, 'liked')",
+                (row["title"], (row["description"] or "")[:500]),
+            )
+        else:
+            await db.execute(
+                "DELETE FROM user_feedback WHERE title = ? AND reason = 'liked'",
+                (row["title"],),
+            )
+
+        await db.commit()
+        return {"ok": True, "liked": not already_liked}
     finally:
         await db.close()
 

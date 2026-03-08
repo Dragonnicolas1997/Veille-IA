@@ -136,6 +136,7 @@ async def init_db():
                 relevance_score INTEGER DEFAULT 0,
                 manually_added INTEGER DEFAULT 0,
                 manually_removed INTEGER DEFAULT 0,
+                user_liked INTEGER DEFAULT 0,
                 FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE,
                 FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
             );
@@ -149,7 +150,7 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 description TEXT DEFAULT '',
-                reason TEXT DEFAULT 'deleted_by_user',
+                reason TEXT DEFAULT 'rejected',
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
         """)
@@ -157,6 +158,13 @@ async def init_db():
         # Migration: add title_fr column if missing
         try:
             await db.execute("ALTER TABLE articles ADD COLUMN title_fr TEXT")
+            await db.commit()
+        except Exception:
+            pass  # column already exists
+
+        # Migration: add user_liked column if missing
+        try:
+            await db.execute("ALTER TABLE articles ADD COLUMN user_liked INTEGER DEFAULT 0")
             await db.commit()
         except Exception:
             pass  # column already exists

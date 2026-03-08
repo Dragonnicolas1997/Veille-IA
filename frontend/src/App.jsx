@@ -23,6 +23,7 @@ import {
   RotateCw,
   Pencil,
   ChevronDown,
+  ThumbsUp,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -209,6 +210,13 @@ export default function App() {
   async function handleRemoveArticle(id) {
     await api.deleteArticle(id);
     setArticles((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  async function handleLikeArticle(id) {
+    const res = await api.likeArticle(id);
+    setArticles((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, user_liked: res.liked ? 1 : 0 } : a))
+    );
   }
 
   async function handleMoveArticle(id, newCatId) {
@@ -677,13 +685,22 @@ export default function App() {
                       >
                         Lire l'article <ExternalLink size={12} />
                       </a>
-                      <button
-                        onClick={() => handleRemoveArticle(article.id)}
-                        className="p-2 text-black/20 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                        title="Retirer de la veille"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleLikeArticle(article.id)}
+                          className={`p-2 rounded-xl transition-all ${article.user_liked ? "text-blue-500 bg-blue-50" : "text-black/20 hover:text-blue-500 hover:bg-blue-50"}`}
+                          title={article.user_liked ? "Retirer le like" : "Article pertinent"}
+                        >
+                          <ThumbsUp size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveArticle(article.id)}
+                          className="p-2 text-black/20 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          title="Retirer de la veille"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </motion.article>
                 ))}
