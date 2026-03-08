@@ -55,6 +55,7 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState(null);
   const [days, setDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
 
   // Settings form state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -78,8 +79,13 @@ export default function App() {
           (a.description || "").toLowerCase().includes(q)
       );
     }
+    list = [...list].sort((a, b) => {
+      const da = new Date(a.published_at || 0);
+      const db = new Date(b.published_at || 0);
+      return sortOrder === "newest" ? db - da : da - db;
+    });
     return list;
-  }, [articles, selectedCategory, searchQuery]);
+  }, [articles, selectedCategory, searchQuery, sortOrder]);
 
   const categoryCounts = useMemo(() => {
     const counts = {};
@@ -455,6 +461,12 @@ export default function App() {
                   {filteredArticles.length} articles — {!days ? "toutes les dates" : days <= 1 ? "dernières 24h" : `${days} derniers jours`}
                 </p>
               </div>
+              <button
+                onClick={() => setSortOrder(sortOrder === "newest" ? "oldest" : "newest")}
+                className="px-4 py-2 bg-black/5 hover:bg-black/10 rounded-xl text-xs font-bold text-black/60 transition-all"
+              >
+                {sortOrder === "newest" ? "Plus récents ↓" : "Plus anciens ↓"}
+              </button>
             </div>
 
             {filteredArticles.length === 0 ? (
