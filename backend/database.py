@@ -159,6 +159,12 @@ async def init_db():
             SEED_FEEDS,
         )
 
+        # Seed virtual feed for manually added articles
+        await db.execute(
+            "INSERT OR IGNORE INTO feeds (url, name, active) VALUES (?, ?, 0)",
+            ("manual://", "Ajout manuel"),
+        )
+
         # Seed categories
         cursor = await db.execute("SELECT COUNT(*) FROM categories")
         row = await cursor.fetchone()

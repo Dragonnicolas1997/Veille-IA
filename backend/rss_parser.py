@@ -139,6 +139,42 @@ def _parse_atom(root, feed_id: int) -> list[dict]:
     return articles
 
 
+async def fetch_url_metadata(url: str) -> dict:
+    """Fetch a web page and extract its title and meta description."""
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            resp = await client.get(url, headers={
+                "User-Agent": "VeilleIA/1.0"
+            })
+            resp.raise_for_status()
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to fetch URL {url}: {e}")
+        return {"title": url, "description": ""}
+
+    html = resp.text
+    # Extract <title>
+    m = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    title = m.group(1).strip() if m else url
+    # Extract <meta name="description">
+    m = re.search(
+        r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']',
+        html, re.IGNORECASE | re.DOTALL,
+    )
+    if not m:
+        m = re.search(
+            r'<meta[^>]+content=["\'](.*?)["\'][^>]+name=["\']description["\']',
+            html, re.IGNORECASE | re.DOTALL,
+        )
+    description = m.group(1).strip() if m else ""
+
+    # Clean HTML entities
+    import html as html_mod
+    title = html_mod.unescape(title)
+    description = html_mod.unescape(description)
+
+    return {"title": title[:500], "description": description[:2000]}
+
+
 async def fetch_feed(feed_id: int, feed_url: str) -> list[dict]:
     """Fetch and parse a single RSS/Atom feed. Returns list of article dicts."""
     try:

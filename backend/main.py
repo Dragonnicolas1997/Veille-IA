@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from database import get_db, init_db
-from rss_parser import fetch_and_store, is_ai_related_keyword
+from rss_parser import fetch_and_store, is_ai_related_keyword, fetch_url_metadata
 from claude_service import (
     get_api_key,
     filter_and_classify,
@@ -68,6 +68,9 @@ class ArticlePatch(BaseModel):
 class SettingsIn(BaseModel):
     anthropic_api_key: str | None = None
     refresh_interval_hours: int | None = None
+
+class ArticleAddIn(BaseModel):
+    url: str
 
 class BriefingIn(BaseModel):
     article_ids: list[int] = []
@@ -324,6 +327,69 @@ async def reclassify_rejected():
             classified = len(results)
 
         return {"reprocessed": len(pool), "classified": classified}
+    finally:
+        await db.close()
+
+
+# ── Add article manually ──────────────────────────────────────────
+
+@app.post("/api/articles/add", status_code=201)
+async def add_article(body: ArticleAddIn):
+    db = await get_db()
+    try:
+        # Check duplicate
+        cursor = await db.execute("SELECT id FROM articles WHERE url = ?", (body.url,))
+        if await cursor.fetchone():
+            raise HTTPException(409, "Cet article existe déjà")
+
+        # Get manual feed id
+        cursor = await db.execute("SELECT id FROM feeds WHERE url = 'manual://'")
+        feed_row = await cursor.fetchone()
+        if not feed_row:
+            raise HTTPException(500, "Feed manuel introuvable")
+        feed_id = feed_row["id"]
+
+        # Fetch metadata
+        meta = await fetch_url_metadata(body.url)
+
+        # Insert article
+        now = datetime.now(timezone.utc).isoformat()
+        await db.execute(
+            """INSERT INTO articles (feed_id, url, title, description, published_at, manually_added)
+               VALUES (?, ?, ?, ?, ?, 1)""",
+            (feed_id, body.url, meta["title"], meta["description"], now),
+        )
+        await db.commit()
+
+        # Get inserted article
+        cursor = await db.execute("SELECT id, url, title, description, published_at FROM articles WHERE url = ?", (body.url,))
+        article = dict(await cursor.fetchone())
+
+        # Classify with Claude
+        api_key = await get_api_key(db)
+        if api_key:
+            cursor = await db.execute("SELECT id, name, description FROM categories ORDER BY position")
+            categories = [dict(row) for row in await cursor.fetchall()]
+            results = await filter_and_classify([article], categories, api_key)
+            await apply_classifications(db, results)
+
+        # Ensure manually added articles are always visible
+        await db.execute(
+            "UPDATE articles SET is_ai_related = 1, relevance_score = MAX(relevance_score, 7) WHERE id = ? AND manually_added = 1",
+            (article["id"],),
+        )
+        await db.commit()
+
+        # Return full article
+        cursor = await db.execute(
+            """SELECT a.*, f.name as feed_name, c.name as category_name, c.color as category_color
+               FROM articles a
+               LEFT JOIN feeds f ON a.feed_id = f.id
+               LEFT JOIN categories c ON a.category_id = c.id
+               WHERE a.id = ?""",
+            (article["id"],),
+        )
+        return dict(await cursor.fetchone())
     finally:
         await db.close()
 

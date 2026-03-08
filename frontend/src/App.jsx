@@ -56,6 +56,9 @@ export default function App() {
   const [days, setDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [showAddUrl, setShowAddUrl] = useState(false);
+  const [addUrlInput, setAddUrlInput] = useState("");
+  const [isAddingArticle, setIsAddingArticle] = useState(false);
 
   // Settings form state
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -212,6 +215,29 @@ export default function App() {
     await loadArticles();
   }
 
+  async function handleAddArticle(e) {
+    e.preventDefault();
+    if (!addUrlInput.trim()) return;
+    setIsAddingArticle(true);
+    setStatusMessage("Ajout et classification en cours...");
+    try {
+      await api.addArticle(addUrlInput.trim());
+      setAddUrlInput("");
+      setShowAddUrl(false);
+      setStatusMessage("Article ajouté avec succès !");
+      await loadArticles();
+      setTimeout(() => setStatusMessage(null), 3000);
+    } catch (err) {
+      setStatusMessage(
+        err.message.includes("409")
+          ? "Cet article existe déjà."
+          : "Erreur lors de l'ajout."
+      );
+      setTimeout(() => setStatusMessage(null), 4000);
+    }
+    setIsAddingArticle(false);
+  }
+
   function toggleArticleSelection(id) {
     setSelectedForBriefing((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -267,6 +293,13 @@ export default function App() {
               {articles.length} articles
             </span>
             <button
+              onClick={() => setShowAddUrl((v) => !v)}
+              className="flex items-center gap-1 bg-black/5 text-black/70 px-3 py-2 rounded-lg text-sm font-medium hover:bg-black/10 transition-all"
+              title="Ajouter un article par URL"
+            >
+              <Plus size={16} />
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-black/10"
@@ -287,6 +320,49 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Add article by URL bar */}
+      <AnimatePresence>
+        {showAddUrl && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-black/5 bg-white"
+          >
+            <form onSubmit={handleAddArticle} className="flex items-center gap-2 px-8 py-3">
+              <input
+                type="url"
+                placeholder="Coller l'URL d'un article..."
+                value={addUrlInput}
+                onChange={(e) => setAddUrlInput(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20"
+                autoFocus
+                required
+              />
+              <button
+                type="submit"
+                disabled={isAddingArticle}
+                className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black/80 transition-all disabled:opacity-50"
+              >
+                {isAddingArticle ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Plus size={14} />
+                )}
+                Ajouter
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAddUrl(false); setAddUrlInput(""); }}
+                className="p-2 hover:bg-black/5 rounded-lg text-black/40 hover:text-black"
+              >
+                <X size={16} />
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}

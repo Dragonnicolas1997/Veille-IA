@@ -50,6 +50,10 @@ export const getStats = () => request("/stats");
 export const translateTitles = () =>
   request("/translate-titles", { method: "POST" });
 
+// Add article manually
+export const addArticle = (url) =>
+  request("/articles/add", { method: "POST", body: JSON.stringify({ url }) });
+
 // Reclassify
 export const reclassify = () =>
   request("/reclassify", { method: "POST" });
