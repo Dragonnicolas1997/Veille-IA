@@ -144,6 +144,14 @@ async def init_db():
                 key TEXT PRIMARY KEY,
                 value TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS user_feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                reason TEXT DEFAULT 'deleted_by_user',
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
         """)
 
         # Migration: add title_fr column if missing

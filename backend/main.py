@@ -30,6 +30,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def _get_rejected_examples(db, limit=15) -> list[dict]:
+    """Fetch recent user-rejected articles as negative examples for Claude."""
+    cursor = await db.execute(
+        "SELECT title, description FROM user_feedback ORDER BY created_at DESC LIMIT ?",
+        (limit,),
+    )
+    return [dict(row) for row in await cursor.fetchall()]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -157,7 +166,8 @@ async def _check_and_reclassify(db, api_key) -> int:
 
     classified = 0
     if pool:
-        results = await filter_and_classify(pool, categories, api_key)
+        rejected = await _get_rejected_examples(db)
+        results = await filter_and_classify(pool, categories, api_key, rejected)
         await apply_classifications(db, results)
         classified = len(results)
 
@@ -231,7 +241,8 @@ async def refresh_feeds():
             logger.info(f"Après dédup : {len(pool)} articles à classifier")
 
             if pool:
-                results = await filter_and_classify(pool, categories, api_key)
+                rejected = await _get_rejected_examples(db)
+                results = await filter_and_classify(pool, categories, api_key, rejected)
                 await apply_classifications(db, results)
                 classified = len(results)
 
@@ -273,7 +284,8 @@ async def reclassify_articles():
 
         classified = 0
         if pool:
-            results = await filter_and_classify(pool, categories, api_key)
+            rejected = await _get_rejected_examples(db)
+            results = await filter_and_classify(pool, categories, api_key, rejected)
             await apply_classifications(db, results)
             classified = len(results)
 
@@ -323,7 +335,8 @@ async def reclassify_rejected():
 
         classified = 0
         if pool:
-            results = await filter_and_classify(pool, categories, api_key)
+            rejected = await _get_rejected_examples(db)
+            results = await filter_and_classify(pool, categories, api_key, rejected)
             await apply_classifications(db, results)
             classified = len(results)
 
@@ -462,6 +475,16 @@ async def update_article(article_id: int, patch: ArticlePatch):
 async def delete_article(article_id: int):
     db = await get_db()
     try:
+        # Save as negative feedback before deleting
+        cursor = await db.execute(
+            "SELECT title, description FROM articles WHERE id = ?", (article_id,)
+        )
+        row = await cursor.fetchone()
+        if row:
+            await db.execute(
+                "INSERT INTO user_feedback (title, description) VALUES (?, ?)",
+                (row["title"], (row["description"] or "")[:500]),
+            )
         await db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
         await db.commit()
         return {"ok": True}

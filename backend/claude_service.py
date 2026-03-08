@@ -20,10 +20,11 @@ async def get_api_key(db) -> str | None:
 
 
 async def filter_and_classify(
-    articles: list[dict], categories: list[dict], api_key: str
+    articles: list[dict], categories: list[dict], api_key: str,
+    rejected_examples: list[dict] | None = None,
 ) -> list[dict]:
     """
-    Send articles to Claude in batches of 10 for AI-relevance filtering,
+    Send articles to Claude in batches for AI-relevance filtering,
     classification, scoring, and French summarization.
     Returns list of classification results.
     """
@@ -37,6 +38,19 @@ async def filter_and_classify(
         for c in categories
     )
 
+    # Build rejected examples section
+    rejected_section = ""
+    if rejected_examples:
+        rejected_lines = "\n".join(
+            f"- \"{ex['title']}\" → score 0, is_ai_related: false"
+            for ex in rejected_examples[:15]
+        )
+        rejected_section = f"""
+
+ARTICLES REJETÉS PAR L'UTILISATEUR (calibre-toi sur ces exemples — des articles similaires doivent recevoir score 0) :
+{rejected_lines}
+"""
+
     system_prompt = f"""Tu es un assistant de veille IA pour le Directeur du Lab IA d'une grande entreprise française du CAC 40.
 Cette veille est destinée à être diffusée à l'ensemble des collaborateurs de l'entreprise,
 tous niveaux confondus : dirigeants, managers, experts métier, et employés non-techniques.
@@ -45,6 +59,7 @@ CRITÈRES D'EXCLUSION (score 0, is_ai_related = false) :
 - Articles qui ne parlent PAS d'intelligence artificielle, machine learning ou automatisation intelligente
 - Cybersécurité pure (ransomware, phishing, failles) SAUF si l'IA est au cœur du sujet
 - Gadgets, jeux vidéo, divertissement grand public
+- Sport, people, politique générale sans lien direct avec l'IA
 - Recherche académique pure sans application entreprise à horizon 2 ans
 - Articles listicles ("10 outils IA…") ou promotionnels sans substance
 - Levées de fonds de startups mineures ou tours de financement (série A/B/C) sans portée stratégique — MAIS les levées massives ou mouvements financiers des grands acteurs IA (OpenAI, Anthropic, Google, Mistral, Meta, Microsoft, xAI, etc.) sont PERTINENTS car ils redéfinissent l'écosystème
@@ -62,6 +77,38 @@ GRILLE DE NOTATION (sois exigeant mais pas aveugle aux signaux stratégiques mon
 
 IMPORTANT : Sois exigeant sur la qualité mais ne rejette pas les signaux stratégiques mondiaux. Un article sur une startup US inconnue sans lien avec le contexte européen ne mérite PAS un 8+. Mais une levée de $100B+ d'OpenAI ou un contrat Anthropic/Pentagone méritent un 8 car ils redéfinissent l'environnement stratégique de tout Lab IA.
 
+EXEMPLES DE SCORING (utilise ces exemples pour calibrer tes notes) :
+
+Exemple 1 — Score 9 :
+Titre : "L'AI Act entre en application : les entreprises européennes ont 6 mois pour se conformer"
+→ is_ai_related: true, score: 9, catégorie: Éthique & Réglementaire
+Raison : impact réglementaire direct et immédiat sur toutes les grandes entreprises FR.
+
+Exemple 2 — Score 8 :
+Titre : "BNP Paribas déploie Copilot auprès de 10 000 collaborateurs : premiers retours"
+→ is_ai_related: true, score: 8, catégorie: Cas d'Usages & Retours Marché
+Raison : cas d'usage chiffré, entreprise française comparable, enseignements transposables.
+
+Exemple 3 — Score 7 :
+Titre : "Google DeepMind releases Gemini 2.5 with improved reasoning capabilities"
+→ is_ai_related: true, score: 7, catégorie: Innovation & Hype IA
+Raison : innovation majeure mais impact indirect, pas encore de cas d'usage entreprise concret.
+
+Exemple 4 — Score 0 (rejeté) :
+Titre : "Le PSG remporte la Ligue des Champions grâce à sa stratégie data"
+→ is_ai_related: false, score: 0
+Raison : article sportif, le mot "stratégie" ou "data" ne suffit pas.
+
+Exemple 5 — Score 0 (rejeté) :
+Titre : "Top 15 des meilleurs outils IA gratuits en 2025"
+→ is_ai_related: false, score: 0
+Raison : listicle promotionnel sans substance pour un Lab IA d'entreprise.
+
+Exemple 6 — Score 0 (rejeté) :
+Titre : "Cyberattaque massive : des hackers exploitent une faille zero-day"
+→ is_ai_related: false, score: 0
+Raison : cybersécurité pure sans lien avec l'IA.
+{rejected_section}
 CATÉGORIES — classe chaque article pertinent dans UNE seule catégorie :
 {categories_desc}
 
