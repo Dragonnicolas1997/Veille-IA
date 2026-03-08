@@ -170,6 +170,13 @@ async def init_db():
         except Exception:
             pass  # column already exists
 
+        # Migration: add category_name to user_feedback if missing
+        try:
+            await db.execute("ALTER TABLE user_feedback ADD COLUMN category_name TEXT DEFAULT ''")
+            await db.commit()
+        except Exception:
+            pass  # column already exists
+
         # Seed feeds (INSERT OR IGNORE ensures new feeds are added to existing DBs too)
         await db.executemany(
             "INSERT OR IGNORE INTO feeds (url, name) VALUES (?, ?)",
