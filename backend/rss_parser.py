@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse, urlunparse
 import httpx
 import xml.etree.ElementTree as ET
+import asyncio
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 import logging
@@ -208,13 +209,23 @@ async def fetch_and_store(db) -> list[dict]:
     cursor = await db.execute("SELECT id, url FROM feeds WHERE active = 1")
     feeds = await cursor.fetchall()
 
+    # Fetch all feeds in parallel
+    feed_results = await asyncio.gather(
+        *(fetch_feed(feed["id"], feed["url"]) for feed in feeds),
+        return_exceptions=True,
+    )
+
     all_new = []
     total_raw = 0
     total_filtered = 0
-    for feed in feeds:
-        articles = await fetch_feed(feed["id"], feed["url"])
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    now = datetime.utcnow().isoformat()
+
+    for feed, articles in zip(feeds, feed_results):
+        if isinstance(articles, Exception):
+            logger.error(f"Feed fetch error for {feed['url']}: {articles}")
+            continue
         total_raw += len(articles)
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
         for article in articles:
             # Ignorer les articles sans date ou trop vieux
             if not article["published_at"] or article["published_at"] < cutoff:
@@ -245,7 +256,7 @@ async def fetch_and_store(db) -> list[dict]:
         # Update last_fetched
         await db.execute(
             "UPDATE feeds SET last_fetched = ? WHERE id = ?",
-            (datetime.utcnow().isoformat(), feed["id"]),
+            (now, feed["id"]),
         )
 
     logger.info(

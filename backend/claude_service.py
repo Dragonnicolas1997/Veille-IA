@@ -78,9 +78,9 @@ Si l'article n'est pas pertinent, mets is_ai_related à false, category_id à nu
 
     results = []
 
-    # Process in batches of 5
-    for i in range(0, len(articles), 5):
-        batch = articles[i : i + 5]
+    # Process in batches of 15
+    for i in range(0, len(articles), 15):
+        batch = articles[i : i + 15]
         articles_text = json.dumps(
             [
                 {"url": a["url"], "title": a["title"], "description": a["description"]}
