@@ -73,23 +73,6 @@ async def refresh_job():
         await db.close()
 
 
-async def cleanup_old_articles():
-    """Delete articles older than 60 days."""
-    db = await get_db()
-    try:
-        cursor = await db.execute(
-            "DELETE FROM articles WHERE published_at < datetime('now', '-60 days')"
-        )
-        deleted = cursor.rowcount
-        await db.commit()
-        if deleted:
-            logger.info(f"Cleanup: deleted {deleted} articles older than 60 days")
-    except Exception as e:
-        logger.exception(f"Cleanup job error: {e}")
-    finally:
-        await db.close()
-
-
 async def start_scheduler():
     """Start the scheduler with the interval from settings."""
     db = await get_db()
@@ -108,14 +91,8 @@ async def start_scheduler():
         id=JOB_ID,
         replace_existing=True,
     )
-    scheduler.add_job(
-        cleanup_old_articles,
-        trigger=IntervalTrigger(days=1),
-        id="cleanup",
-        replace_existing=True,
-    )
     scheduler.start()
-    logger.info(f"Scheduler started with {hours}h interval + daily cleanup")
+    logger.info(f"Scheduler started with {hours}h interval")
 
 
 async def reschedule(hours: int):
