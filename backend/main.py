@@ -583,6 +583,7 @@ async def update_category(cat_id: int, cat: CategoryIn):
 async def delete_category(cat_id: int):
     db = await get_db()
     try:
+        await db.execute("DELETE FROM articles WHERE category_id = ?", (cat_id,))
         await db.execute("DELETE FROM categories WHERE id = ?", (cat_id,))
         await db.commit()
         return {"ok": True}
