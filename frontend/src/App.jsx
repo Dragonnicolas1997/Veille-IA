@@ -24,6 +24,8 @@ import {
   Pencil,
   ChevronDown,
   ThumbsUp,
+  Lock,
+  LogOut,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -32,6 +34,38 @@ import html2pdf from "html2pdf.js";
 import * as api from "./api";
 
 export default function App() {
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(api.isAuthenticated());
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    const onExpired = () => setIsLoggedIn(false);
+    window.addEventListener("auth-expired", onExpired);
+    return () => window.removeEventListener("auth-expired", onExpired);
+  }, []);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoginError("");
+    setIsLoggingIn(true);
+    try {
+      await api.login(loginPassword);
+      setIsLoggedIn(true);
+      setLoginPassword("");
+    } catch {
+      setLoginError("Mot de passe incorrect");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  function handleLogout() {
+    api.logout();
+    setIsLoggedIn(false);
+  }
+
   // Data state
   const [feeds, setFeeds] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -272,6 +306,42 @@ export default function App() {
     setIsGeneratingBriefing(false);
   }
 
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
+        <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm space-y-6">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white">
+              <Lock size={28} />
+            </div>
+            <h1 className="font-bold text-2xl tracking-tight">Veille IA</h1>
+            <p className="text-sm text-black/50">Entrez le mot de passe pour accéder à l'application</p>
+          </div>
+          <div>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="Mot de passe"
+              className="w-full px-4 py-3 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/20"
+              autoFocus
+            />
+          </div>
+          {loginError && (
+            <p className="text-red-500 text-sm text-center">{loginError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={isLoggingIn || !loginPassword}
+            className="w-full py-3 bg-black text-white rounded-xl text-sm font-semibold hover:bg-black/80 transition disabled:opacity-50"
+          >
+            {isLoggingIn ? "Connexion..." : "Accéder"}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-sans flex flex-col">
       {/* Top Bar */}
@@ -326,6 +396,13 @@ export default function App() {
               className="p-2 hover:bg-black/5 rounded-lg transition-colors text-black/60 hover:text-black"
             >
               <Settings size={20} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-black/5 rounded-lg transition-colors text-black/60 hover:text-black"
+              title="Déconnexion"
+            >
+              <LogOut size={20} />
             </button>
           </div>
         </div>

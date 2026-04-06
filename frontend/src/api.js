@@ -1,13 +1,43 @@
 const BASE = import.meta.env.VITE_API_BASE || "/api";
 
+function getToken() {
+  return localStorage.getItem("auth_token");
+}
+
 async function request(path, options = {}) {
+  const token = getToken();
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
+  if (res.status === 401) {
+    localStorage.removeItem("auth_token");
+    window.dispatchEvent(new Event("auth-expired"));
+  }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }
+
+// Auth
+export const login = async (password) => {
+  const res = await fetch(`${BASE}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error("Mot de passe incorrect");
+  const data = await res.json();
+  localStorage.setItem("auth_token", data.token);
+  return data;
+};
+
+export const logout = () => {
+  localStorage.removeItem("auth_token");
+};
+
+export const isAuthenticated = () => !!getToken();
 
 // Feeds
 export const getFeeds = () => request("/feeds");

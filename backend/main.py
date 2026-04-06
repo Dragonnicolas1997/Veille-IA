@@ -8,11 +8,12 @@ from pathlib import Path
 
 import anthropic
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from database import get_db, init_db
 from rss_parser import fetch_and_store, is_ai_related_keyword, fetch_url_metadata
@@ -56,6 +57,50 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Auth ─────────────────────────────────────────────────────────
+
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "Veille 2026")
+AUTH_SECRET = os.environ.get("AUTH_SECRET", "veille-ia-secret-key-2026")
+
+
+def _make_token(password: str) -> str:
+    return hashlib.sha256(f"{password}:{AUTH_SECRET}".encode()).hexdigest()
+
+
+VALID_TOKEN = _make_token(APP_PASSWORD)
+
+
+class LoginIn(BaseModel):
+    password: str
+
+
+@app.post("/api/login")
+async def login(body: LoginIn):
+    if body.password != APP_PASSWORD:
+        raise HTTPException(401, "Mot de passe incorrect")
+    return {"token": VALID_TOKEN}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if (
+            path.startswith("/api/")
+            and path != "/api/login"
+            and request.method != "OPTIONS"
+        ):
+            auth = request.headers.get("Authorization", "")
+            if not auth.startswith("Bearer ") or auth[7:] != VALID_TOKEN:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Non authentifié"},
+                )
+        return await call_next(request)
+
+
+app.add_middleware(AuthMiddleware)
 
 
 # ── Pydantic models ──────────────────────────────────────────────
