@@ -136,10 +136,10 @@ export default function App() {
     return counts;
   }, [articles]);
 
-  // Load everything on mount
+  // Load everything on mount (only if logged in)
   useEffect(() => {
-    loadAll();
-  }, []);
+    if (isLoggedIn) loadAll();
+  }, [isLoggedIn]);
 
   async function loadAll() {
     try {
@@ -163,8 +163,8 @@ export default function App() {
 
   // Recharger les articles quand le filtre jours change
   useEffect(() => {
-    loadArticles();
-  }, [days]);
+    if (isLoggedIn) loadArticles();
+  }, [days, isLoggedIn]);
 
   async function loadArticles() {
     try {
